@@ -1,0 +1,12 @@
+# folders
+.git/
+env/
+venv/
+
+# files
+.gitignore
+LICENSE
+Dockerfile
+docker-compose.yml
+sample.env
+*.md

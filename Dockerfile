@@ -1,21 +1,22 @@
-FROM python:3.10.4-alpine AS compile-image
+FROM python:3.10.4-alpine AS compiler
+
+WORKDIR /app/
 
 RUN apk update
 RUN apk add --no-cache gcc
 
-COPY requirements.txt .
-RUN pip install --user -r requirements.txt
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-FROM python:3.10.4-alpine AS build-image
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install -Ur requirements.txt
 
-COPY --from=compile-image /root/.local /root/.local
+FROM python:3.10.4-alpine AS runner
 
-WORKDIR /app
+WORKDIR /app/ 
+COPY --from=compiler /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-COPY . .
-
-ENV PATH=/root/.local/bin:$PATH
-
+COPY . /app/
 EXPOSE 8000
-
 CMD [ "python", "main.py" ]
