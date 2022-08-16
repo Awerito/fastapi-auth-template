@@ -1,0 +1,23 @@
+version: '2'
+
+services:
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASS}"
+    volumes:
+      - '${LOCAL_VOLUME}:/data/db'
+
+  fastapi:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    image: "${IMAGE_NAME}"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_HOST: mongo
+    ports:
+      - ${CONTAINER_PORT}:8000
