@@ -7,6 +7,7 @@ from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
 
 from src.database import db
+from src.routes.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 # from src.routes.router_module import router_name
@@ -42,5 +43,5 @@ async def app_shutdown():
     db.client.close()
 
 
-# Endpoints routers
-# app.include_router(router_name)
+# Users Endpoints
+app.include_router(authentication_routes)
