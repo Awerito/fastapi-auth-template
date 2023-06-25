@@ -94,7 +94,7 @@ async def create_user(
 
 @authentication_routes.get("/user/{name}/", response_model=User, tags=["Users"])
 async def get_user_by_username(
-    name: str, current_user: User = Security(current_active_user, scopes=["admin"])
+    name: str, current_user: User = Security(current_active_user, scopes=["user.me"])
 ):
     """Returns basic info of the given user.
 
@@ -104,18 +104,25 @@ async def get_user_by_username(
 
     """
 
-    user = get_user(db, name)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    if "admin" in current_user.scopes or (
+        "user.me" in current_user.scopes and current_user.username == name
+    ):
+        user = get_user(db, name)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
+            )
 
-    return user
+        return user
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
 @authentication_routes.put("/user/{name}/", tags=["Users"])
 async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
-    current_user: User = Security(current_active_user, scopes=["admin", "user.me"]),
+    current_user: User = Security(current_active_user, scopes=["user.me"]),
 ):
     """Update the current user's usersname. Cannot be repeated.
 
@@ -143,7 +150,7 @@ async def update_user(
 @authentication_routes.delete("/user/{name}/", tags=["Users"])
 async def delete_user(
     name: str,
-    current_user: User = Security(current_active_user, scopes=["admin", "user.me"]),
+    current_user: User = Security(current_active_user, scopes=["user.me"]),
 ):
     """Delete the given user if exists.
 
@@ -181,7 +188,7 @@ async def delete_user(
 
 @authentication_routes.get("/user/", response_model=list[User], tags=["Users"])
 async def get_all_users(
-    current_user: User = Security(current_active_user, scopes=["admin"])
+    current_user: User = Security(current_active_user, scopes=["user.me"])
 ):
     """Lists all existing users.
 
