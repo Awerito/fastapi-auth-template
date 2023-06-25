@@ -1,5 +1,6 @@
 import logging
 
+from pprint import pprint
 from fastapi import FastAPI
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
 
 from src.database import db
+from src.auth import create_admin_user
 from src.routes.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
@@ -36,6 +38,11 @@ async def app_startup():
     except ServerSelectionTimeoutError as e:
         print(f"Error: {e}")
         exit(1)
+
+    # Create the admin user if it does not exist
+    user = create_admin_user(db)
+    if user:
+        logging.warning("Admin user created!")
 
 
 @app.on_event("shutdown")
