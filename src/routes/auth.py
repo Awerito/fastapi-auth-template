@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, Security, Form, status
 
 from src.database import db
 from src.config import ACCESS_TOKEN_DURATION_MINUTES
-from src.auth2 import (
+from src.auth import (
     User,
     Token,
     UserInDB,
