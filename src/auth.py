@@ -147,7 +147,7 @@ def create_admin_user(db):
     admin_user = UserInDB(
         username="admin",
         hashed_password=get_password_hash("admin"),
-        scopes=["admin"],
+        scopes=SCOPES.keys(),
         disabled=False,
     )
     db.users.insert_one(admin_user.dict())
