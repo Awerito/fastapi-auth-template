@@ -1,58 +1,73 @@
-from fastapi import HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, EmailStr
-from passlib.context import CryptContext
+from typing import Annotated
 from datetime import datetime, timedelta
-from jose import jwt, JWTError
+
+from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi.security import (
+    SecurityScopes,
+    OAuth2PasswordBearer,
+    OAuth2PasswordRequestForm,
+)
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel, ValidationError
 
 from src.database import db
 from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
-# Authentication models
+# Scopes
+SCOPES = {
+    "admin": "Complete access to the API.",
+    "user.me": "The current user.",
+}
+
+
 class Token(BaseModel):
-    # TODO: add duration time
     access_token: str
     token_type: str
 
 
 class TokenData(BaseModel):
     username: str | None = None
+    scopes: list[str] = []
 
 
 class User(BaseModel):
     username: str
-    email: EmailStr | None = None
+    email: str | None = None
     full_name: str | None = None
-    disabled: bool | None = None
+    disabled: bool = False
+    scopes: list[str] = []
 
     class Config:
         schema_extra = {
             "example": {
                 "username": "user",
-                "full_name": "p@52-//-w0rD",
+                "full_name": "username fullname",
                 "email": "example@mail.com",
                 "disabled": False,
             }
         }
 
 
+class UserCreate(User):
+    password: str
+
+
 class UserInDB(User):
-    # WARN: JUST TO HANDLE ON AUTHENTICATIONS AND SAVE TO DB,
-    # NEVER RESPOND A REQUEST WITH IT!
     hashed_password: str
 
 
-# OAuth2
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", scopes=SCOPES)
+
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def hash_password(password):
+def get_password_hash(password):
     return pwd_context.hash(password)
 
 
@@ -61,16 +76,15 @@ def get_user(db, username: str):
     if not user:
         return None
 
-    del user["_id"]  # No needed
     return UserInDB(**user)
 
 
 def authenticate_user(db, username: str, password: str):
     user = get_user(db, username)
     if not user:
-        return None
+        return False
     if not verify_password(password, user.hashed_password):
-        return None
+        return False
     return user
 
 
@@ -79,33 +93,62 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=10)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_DURATION_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-async def current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+    security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
+):
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
     credentials_exception = HTTPException(
-        status_code=401,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": authenticate_value},
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError):
         raise credentials_exception
     user = get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
+    for scope in security_scopes.scopes:
+        if scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
     return user
 
 
-async def current_active_user(current_user: User = Depends(current_user)):
+async def current_active_user(current_user: User = Depends(get_current_user)):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def create_admin_user(db):
+    user = db.users.find_one()
+    if user:
+        return None
+
+    admin_user = UserInDB(
+        username="admin",
+        hashed_password=get_password_hash("admin"),
+        scopes=["admin"],
+        disabled=False,
+    )
+    db.users.insert_one(admin_user.dict())
+    return User(**admin_user.dict())
