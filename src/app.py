@@ -4,7 +4,6 @@ from pprint import pprint
 from fastapi import FastAPI
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
-from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
 
 from src.database import db
@@ -28,18 +27,6 @@ async def app_startup():
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
 
-    # Connect to the database
-    try:
-        server_info = db.client.server_info()
-        logging.info(f"Connected to MongoDB server: {server_info['version']}")
-    except OperationFailure as e:
-        print(f"Error: {e}")
-        exit(1)
-    except ServerSelectionTimeoutError as e:
-        print(f"Error: {e}")
-        exit(1)
-
-    # Create the admin user if it does not exist
     user = create_admin_user(db)
     if user:
         logging.warning("Admin user created!")
