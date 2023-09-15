@@ -34,14 +34,17 @@ MIDDLEWARE_CONFIG = {
 # Enviroment variables
 DEVELOPMENT = getenv("DEVELOPMENT", "true").lower() == "true"
 
-# MongoDB config
-MONGO_USER = getenv("MONGO_USER", "admin")
-MONGO_PASS = getenv("MONGO_PASS", "admin")
-MONGO_HOST = getenv("MONGO_HOST", "localhost")
-MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/admin"
-DATABASE_NAME = getenv("DATABASE_NAME", "fastapi")
-
 # JWT config
 SECRET_KEY = getenv("SECRET_KEY")
 ALGORITHM = getenv("ALGORITHM")
 ACCESS_TOKEN_DURATION_MINUTES = int(getenv("ACCESS_TOKEN_DURATION_MINUTES"))  # min
+
+# Database config
+POSTGRES_CREDS = {
+    "drivername": "postgresql",
+    "username": getenv("POSTGRES_USER", "postgres"),
+    "password": getenv("POSTGRES_PASSWORD", ""),
+    "host": getenv("POSTGRES_HOST", "localhost"),
+    "database": getenv("POSTGRES_DB", "mydb"),
+    "port": getenv("POSTGRES_PORT", 5432),
+}
