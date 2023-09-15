@@ -1,14 +1,17 @@
 version: '2'
 
 services:
-  mongo:
-    image: mongo
-    restart: unless-stopped
+  postgres:
+    image: postgres:latest
+    container_name: postgres
     environment:
-      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER}"
-      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASS}"
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+    ports:
+      - "5432:5432"
     volumes:
-      - '${LOCAL_VOLUME}:/data/db'
+      - ${LOCAL_VOLUME}:/var/lib/postgresql/data
 
   fastapi:
     build:
@@ -16,8 +19,8 @@ services:
       context: .
     image: "${IMAGE_NAME}"
     depends_on:
-      - mongo
+      - postgres
     environment:
-      MONGO_HOST: mongo
+      POSTGRES_HOST: postgres
     ports:
       - ${CONTAINER_PORT}:8000
