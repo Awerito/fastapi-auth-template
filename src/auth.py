@@ -19,6 +19,10 @@ from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 SCOPES = {
     "admin": "Complete access to the API.",
     "user.me": "The current user.",
+    "user.all": "All users.",
+    "user.create": "Create a new user.",
+    "user.update": "Update a user.",
+    "user.delete": "Delete a user.",
 }
 
 
@@ -124,12 +128,13 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
-        if scope not in token_data.scopes:
+        if scope not in token_data.scopes or scope not in user.scopes:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Not enough permissions",
                 headers={"WWW-Authenticate": authenticate_value},
             )
+
     return user
 
 
@@ -147,7 +152,7 @@ def create_admin_user(db):
     admin_user = UserInDB(
         username="admin",
         hashed_password=get_password_hash("admin"),
-        scopes=SCOPES.keys(),
+        scopes=list(SCOPES.keys()),
         disabled=False,
     )
     db.users.insert_one(admin_user.dict())
