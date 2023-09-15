@@ -1,4 +1,5 @@
 from typing import Annotated
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Security, status
@@ -11,7 +12,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 
-from src.database import db
+from src.database import session
+from src.models import PostgresUser
 from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
@@ -44,7 +46,7 @@ class User(BaseModel):
     email: str | None = None
     full_name: str | None = None
     disabled: bool = False
-    scopes: list[str] = []
+    scopes: str = ""
 
     class Config:
         schema_extra = {
@@ -53,6 +55,7 @@ class User(BaseModel):
                 "full_name": "username fullname",
                 "email": "example@mail.com",
                 "disabled": False,
+                "scopes": "user.me;user.all",
             }
         }
 
@@ -78,16 +81,15 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, username: str):
-    user = db.users.find_one({"username": username})
-    if not user:
-        return None
+def get_user(session: Session, username: str):
+    user = session.query(PostgresUser).filter_by(username=username).first()
+    if user:
+        user = UserInDB(**user.as_dict())
+    return user
 
-    return UserInDB(**user)
 
-
-def authenticate_user(db, username: str, password: str):
-    user = get_user(db, username)
+def authenticate_user(session: Session, username: str, password: str):
+    user = get_user(session, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -127,7 +129,7 @@ async def get_current_user(
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
-    user = get_user(db, username=token_data.username)
+    user = get_user(session, username=token_data.username)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
@@ -147,16 +149,16 @@ async def current_active_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-def create_admin_user(db):
-    user = db.users.find_one()
+def create_admin_user():
+    user = session.query(PostgresUser).first()
     if user:
         return None
 
-    admin_user = UserInDB(
+    admin_user = PostgresUser(
         username="admin",
         hashed_password=get_password_hash("admin"),
-        scopes=list(SCOPES.keys()),
-        disabled=False,
+        scopes=";".join(SCOPES.keys()),
     )
-    db.users.insert_one(admin_user.dict())
-    return User(**admin_user.dict())
+    session.add(admin_user)
+    session.commit()
+    return User(**admin_user.as_dict())
