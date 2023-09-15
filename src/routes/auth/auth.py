@@ -2,7 +2,7 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, Security, Form, status
 
-from src.database import db
+from src.database import session as db
 from src.config import ACCESS_TOKEN_DURATION_MINUTES
 from src.auth import (
     User,
@@ -16,12 +16,15 @@ from src.auth import (
     create_access_token,
     current_active_user,
 )
+from src.models import PostgresUser
 
 
 authentication_routes = APIRouter()
 
 
-@authentication_routes.post("/token", response_model=Token, tags=["Users and Authentication"])
+@authentication_routes.post(
+    "/token", response_model=Token, tags=["Users and Authentication"]
+)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Validate user logins and returns a JWT.
 
@@ -87,12 +90,24 @@ async def create_user(
         )
 
     hashed_password = get_password_hash(user.password)
-    db.users.insert_one(UserInDB(**user.dict(), hashed_password=hashed_password).dict())
+
+    new_user = PostgresUser(
+        username=user.username,
+        full_name=user.full_name,
+        email=user.email,
+        hashed_password=hashed_password,
+        scopes=user.scopes,
+        disabled=user.disabled,
+    )
+    db.add(new_user)
+    db.commit()
 
     raise HTTPException(status_code=status.HTTP_201_CREATED, detail="User created")
 
 
-@authentication_routes.get("/user/{name}/", response_model=User, tags=["Users and Authentication"])
+@authentication_routes.get(
+    "/user/{name}/", response_model=User, tags=["Users and Authentication"]
+)
 async def get_user_by_username(
     name: str, current_user: User = Security(current_active_user, scopes=["user.me"])
 ):
@@ -184,7 +199,9 @@ async def delete_user(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
-@authentication_routes.get("/user/", response_model=list[User], tags=["Users and Authentication"])
+@authentication_routes.get(
+    "/user/", response_model=list[User], tags=["Users and Authentication"]
+)
 async def get_all_users(
     current_user: User = Security(current_active_user, scopes=["user.all"])
 ):
@@ -198,8 +215,8 @@ async def get_all_users(
 
     """
 
-    users = list(db.users.find({}, {"_id": 0, "hashed_password": 0}))
+    users = db.query(PostgresUser).all()
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
-    return [User(**user) for user in users]
+    return [User(**user.as_dict()) for user in users]
