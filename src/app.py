@@ -12,7 +12,7 @@ from src.auth import create_admin_user
 from src.routes.auth.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
-# from src.routes.router_module import router_name
+from src.routes.sample.sample import sample_router
 
 
 app = FastAPI(**FASTAPI_CONFIG)
@@ -52,3 +52,6 @@ async def app_shutdown():
 
 # Users Endpoints
 app.include_router(authentication_routes)
+
+# Sample Endpoints
+app.include_router(sample_router)

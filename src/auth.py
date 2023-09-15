@@ -18,11 +18,14 @@ from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 # Scopes
 SCOPES = {
     "admin": "Complete access to the API.",
+    # User
     "user.me": "The current user.",
     "user.all": "All users.",
     "user.create": "Create a new user.",
     "user.update": "Update a user.",
     "user.delete": "Delete a user.",
+    # Sample
+    "sample.read": "Read sample.",
 }
 
 
