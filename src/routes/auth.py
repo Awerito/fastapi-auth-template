@@ -60,7 +60,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @authentication_routes.post("/user/", tags=["Users"])
 async def create_user(
     user: UserCreate = Depends(UserCreate),
-    current_user: User = Security(current_active_user, scopes=["admin"]),
+    current_user: User = Security(current_active_user, scopes=["user.create"]),
 ):
     """Allows to an authenticated user to create an user.
 
@@ -122,7 +122,7 @@ async def get_user_by_username(
 async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
-    current_user: User = Security(current_active_user, scopes=["user.me"]),
+    current_user: User = Security(current_active_user, scopes=["user.update"]),
 ):
     """Update the current user's usersname. Cannot be repeated.
 
@@ -134,9 +134,7 @@ async def update_user(
 
     """
 
-    if "admin" in current_user.scopes or (
-        "user.me" in current_user.scopes and current_user.username == name
-    ):
+    if "admin" in current_user.scopes or current_user.username == name:
         hasshed_password = get_password_hash(user.password)
         db.users.update_one(
             {"username": name},
@@ -150,7 +148,7 @@ async def update_user(
 @authentication_routes.delete("/user/{name}/", tags=["Users"])
 async def delete_user(
     name: str,
-    current_user: User = Security(current_active_user, scopes=["user.me"]),
+    current_user: User = Security(current_active_user, scopes=["user.delete"]),
 ):
     """Delete the given user if exists.
 
@@ -188,7 +186,7 @@ async def delete_user(
 
 @authentication_routes.get("/user/", response_model=list[User], tags=["Users"])
 async def get_all_users(
-    current_user: User = Security(current_active_user, scopes=["user.me"])
+    current_user: User = Security(current_active_user, scopes=["user.all"])
 ):
     """Lists all existing users.
 
