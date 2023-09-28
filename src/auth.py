@@ -47,7 +47,7 @@ class User(BaseModel):
     scopes: list[str] = []
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "username": "user",
                 "full_name": "username fullname",
