@@ -21,7 +21,9 @@ from src.auth import (
 authentication_routes = APIRouter()
 
 
-@authentication_routes.post("/token", response_model=Token, tags=["Users and Authentication"])
+@authentication_routes.post(
+    "/token", response_model=Token, tags=["Users and Authentication"]
+)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Validate user logins and returns a JWT.
 
@@ -92,7 +94,9 @@ async def create_user(
     raise HTTPException(status_code=status.HTTP_201_CREATED, detail="User created")
 
 
-@authentication_routes.get("/user/{name}/", response_model=User, tags=["Users and Authentication"])
+@authentication_routes.get(
+    "/user/{name}/", response_model=User, tags=["Users and Authentication"]
+)
 async def get_user_by_username(
     name: str, current_user: User = Security(current_active_user, scopes=["user.me"])
 ):
@@ -184,7 +188,9 @@ async def delete_user(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
-@authentication_routes.get("/user/", response_model=list[User], tags=["Users and Authentication"])
+@authentication_routes.get(
+    "/user/", response_model=list[User], tags=["Users and Authentication"]
+)
 async def get_all_users(
     current_user: User = Security(current_active_user, scopes=["user.all"])
 ):
