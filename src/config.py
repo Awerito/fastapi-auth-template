@@ -41,10 +41,13 @@ ACCESS_TOKEN_DURATION_MINUTES = int(getenv("ACCESS_TOKEN_DURATION_MINUTES"))  # 
 
 # Database config
 POSTGRES_CREDS = {
-    "drivername": "postgresql",
     "username": getenv("POSTGRES_USER", "postgres"),
     "password": getenv("POSTGRES_PASSWORD", ""),
     "host": getenv("POSTGRES_HOST", "localhost"),
-    "database": getenv("POSTGRES_DB", "mydb"),
     "port": getenv("POSTGRES_PORT", 5432),
+    "database": getenv("POSTGRES_DB", "mydb"),
 }
+
+DB_URL = "postgres://{username}:{password}@{host}:{port}/{database}".format(
+    **POSTGRES_CREDS
+)
