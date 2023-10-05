@@ -7,11 +7,15 @@ from tortoise import Tortoise
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 
-from src.auth import create_admin_user
-from src.routes.auth.auth import authentication_routes
-from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT, DB_URL
+from src.config import (
+    FASTAPI_CONFIG,
+    MIDDLEWARE_CONFIG,
+    DEVELOPMENT,
+    DB_URL,
+)
+from src.database import TORTOISE_ORM
 
-# from src.routes.sample.sample import sample_router
+from src.routes.sample.sample import sample_router
 
 
 app = FastAPI(**FASTAPI_CONFIG)
@@ -27,26 +31,11 @@ async def app_startup():
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
 
-    # user = await create_admin_user()
-    # if user:
-    #     logging.warning("Admin user created!")
-
 
 @app.on_event("shutdown")
 async def app_shutdown():
     logging.info("App closed!")
 
 
-# Users Endpoints
-app.include_router(authentication_routes)
-
-# # Sample Endpoints
-# app.include_router(sample_router)
-
-register_tortoise(
-    app,
-    db_url=DB_URL,
-    modules={"models": ["src.models.user"]},
-    generate_schemas=True,
-    add_exception_handlers=True,
-)
+# Sample Endpoints
+app.include_router(sample_router)
