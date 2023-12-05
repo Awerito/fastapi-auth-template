@@ -9,6 +9,13 @@ sample_router = APIRouter(tags=["Sample"], prefix="/sample")
 sample_collection = CRUD("sample")
 
 
+@sample_router.get("/send/{message}")
+async def get_send_message(message: str):
+    """Send message to rabbitmq"""
+    send_message("hello", message)
+    return {"message": "Message sent!"}
+
+
 @sample_router.get("/")
 async def get_all_sample(skip: int = 0, limit: int = 100):
     """Get all samples"""
@@ -37,10 +44,3 @@ async def update_sample(sample: dict, sample_id: str):
 async def delete_sample(sample_id: str):
     """Delete sample"""
     return sample_collection.delete({"_id": sample_id})
-
-
-@sample_router.get("/send-message")
-async def send_message():
-    """Send message to rabbitmq"""
-    send_message("hello", "Hello World!")
-    return {"message": "Message sent!"}

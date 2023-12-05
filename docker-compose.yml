@@ -1,14 +1,24 @@
 version: '2'
 
 services:
+  rabbitmq:
+    image: "rabbitmq:3.12-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - apinetwork
+
   mongo:
     image: mongo
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER}"
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASS}"
-    volumes:
-      - '${LOCAL_VOLUME}:/data/db'
+    # volumes:
+    #   - '${LOCAL_VOLUME}:/data/db'
+    networks:
+      - apinetwork
 
   fastapi:
     build:
@@ -17,7 +27,14 @@ services:
     image: "${IMAGE_NAME}"
     depends_on:
       - mongo
+      - rabbitmq
     environment:
       MONGO_HOST: mongo
     ports:
       - ${CONTAINER_PORT}:8000
+    networks:
+      - apinetwork
+
+networks:
+  apinetwork:
+    driver: bridge
