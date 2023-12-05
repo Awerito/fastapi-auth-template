@@ -17,8 +17,7 @@ async def get_all_sample(skip: int = 0, limit: int = 100):
 @sample_router.get("/{sample_id}")
 async def get_sample(sample_id: str):
     """Get sample by id"""
-    sample = sample_collection.read({"_id": sample_id})
-    return sample
+    return sample_collection.read({"_id": sample_id})
 
 
 @sample_router.post("/")

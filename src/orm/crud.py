@@ -12,6 +12,7 @@ class CRUD:
         self.db = db[collection]
 
     def create(self, data):
+        data["disable"] = False
         result = self.db.insert_one(data)
         return str(result.inserted_id)
 
@@ -19,6 +20,9 @@ class CRUD:
         if "_id" in query:
             if ObjectId.is_valid(query["_id"]):
                 query["_id"] = ObjectId(query["_id"])
+
+        if "disable" not in query:
+            query["disable"] = False
 
         result = self.db.find_one(query)
         document = json.loads(json_util.dumps(result))
@@ -33,6 +37,9 @@ class CRUD:
         if "_id" in query:
             if ObjectId.is_valid(query["_id"]):
                 query["_id"] = ObjectId(query["_id"])
+
+        if "disable" not in query:
+            query["disable"] = False
 
         results = self.db.find(query).skip(skip * limit).limit(limit)
         documents = json.loads(json_util.dumps(results))
@@ -49,9 +56,12 @@ class CRUD:
                 query["_id"] = ObjectId(query["_id"])
 
         results = self.db.update_one(query, {"$set": data})
-        print(results)
         return bool(results.modified_count)
 
     def delete(self, query):
-        result = self.db.delete_one(query)
-        return bool(result.deleted_count)
+        if "_id" in query:
+            if ObjectId.is_valid(query["_id"]):
+                query["_id"] = ObjectId(query["_id"])
+
+        results = self.db.update_one(query, {"$set": {"disable": True}})
+        return bool(results.modified_count)
