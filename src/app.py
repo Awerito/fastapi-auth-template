@@ -9,6 +9,7 @@ from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
 from src.database import db
 from src.auth import create_admin_user
+from src.orm.rabbit import create_consumer_thread
 from src.routes.auth.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
@@ -43,6 +44,9 @@ async def app_startup():
     user = create_admin_user(db)
     if user:
         logging.warning("Admin user created!")
+
+    # Create the consumer thread for RabbitMQ
+    create_consumer_thread()
 
 
 @app.on_event("shutdown")

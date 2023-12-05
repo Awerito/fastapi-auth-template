@@ -2,6 +2,7 @@ from bson import ObjectId
 from fastapi import APIRouter
 
 from src.orm.crud import CRUD
+from src.orm.rabbit import send_message
 
 
 sample_router = APIRouter(tags=["Sample"], prefix="/sample")
@@ -36,3 +37,10 @@ async def update_sample(sample: dict, sample_id: str):
 async def delete_sample(sample_id: str):
     """Delete sample"""
     return sample_collection.delete({"_id": sample_id})
+
+
+@sample_router.get("/send-message")
+async def send_message():
+    """Send message to rabbitmq"""
+    send_message("hello", "Hello World!")
+    return {"message": "Message sent!"}
