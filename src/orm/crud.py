@@ -44,11 +44,6 @@ class CRUD:
 
         results = self.db.find(query).skip(skip * limit).limit(limit)
         documents = json.loads(json_util.dumps(results))
-        if not documents:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Documents not found"
-            )
-
         return documents
 
     def update(self, query, data):
