@@ -29,7 +29,7 @@ async def create_establishment(
     regions: list = Depends(available_region),
 ):
     """Create establishment"""
-    if establishment.region not in regions:
+    if establishment.region_id not in regions:
         raise HTTPException(status_code=400, detail="Region does not exist")
 
     return establishment_collection.create(establishment.dict())
@@ -42,7 +42,7 @@ async def update_establishment(
     regions: list = Depends(available_region),
 ):
     """Update establishment"""
-    if establishment.region not in regions:
+    if establishment.region_id not in regions:
         raise HTTPException(status_code=400, detail="Region does not exist")
 
     return establishment_collection.update(
