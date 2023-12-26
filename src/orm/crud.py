@@ -26,12 +26,13 @@ class CRUD:
             query["disable"] = False
 
         result = self.db.find_one(query)
-        document = json.loads(json_util.dumps(result))
-        if not document:
+
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
 
+        document = json.loads(json_util.dumps(self._replace_foreign_keys(result)))
         return document
 
     def read_all(self, query, skip, limit):
@@ -43,8 +44,29 @@ class CRUD:
             query["disable"] = False
 
         results = self.db.find(query).skip(skip * limit).limit(limit)
-        documents = json.loads(json_util.dumps(results))
+        documents = [
+            json.loads(json_util.dumps(self._replace_foreign_keys(result)))
+            for result in results
+        ]
         return documents
+
+    def _replace_foreign_keys(self, document):
+        keys_to_remove = []
+
+        for key, value in list(document.items()):
+            if key.endswith("_id") and key != "_id":
+                collection_name = key[:-3]
+                collection = db[collection_name]
+                foreign_key_value = ObjectId(document[key])
+
+                foreign_document = collection.find_one({"_id": foreign_key_value})
+                document[collection_name] = foreign_document
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            del document[key]
+
+        return document
 
     def update(self, query, data):
         if "_id" in query:
@@ -59,7 +81,6 @@ class CRUD:
                 update_status = db[relation].update_many(
                     {self.collection: results["_id"]}, {"$set": results}
                 )
-                print(update_status)
         return bool(results)
 
     def delete(self, query):
