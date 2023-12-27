@@ -14,8 +14,8 @@ from src.routes.auth.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 from src.routes.sample.sample import sample_router
-from src.routes.establishment.establishment import establishment_router
-from src.routes.region.region import region_router
+from src.routes.test_establishment.test_establishment import test_establishment_router
+from src.routes.test_region.test_region import test_region_router
 
 
 app = FastAPI(**FASTAPI_CONFIG)
@@ -63,5 +63,5 @@ app.include_router(authentication_routes)
 app.include_router(sample_router)
 
 # Endpoints
-app.include_router(establishment_router)
-app.include_router(region_router)
+app.include_router(test_establishment_router)
+app.include_router(test_region_router)
