@@ -1,38 +1,39 @@
 from fastapi import APIRouter, Depends
 
+from src.auth import current_active_user
 from src.orm.crud import CRUD
-#ImportSchemas#
+#Imports#
 
 
-#SchemaName#_router = APIRouter(tags=["#SchemaNameTag#"], prefix="/#SchemaName#")
-#SchemaName#_collection = CRUD("#SchemaName#", relations=[])
+#SchemaNameLower#_router = APIRouter(tags=["#SchemaNameTag#"], prefix="/#SchemaNameLower#", dependencies=[Depends(current_active_user)])
+#SchemaNameLower#_collection = CRUD("#SchemaNameLower#", relations=[])
 
 
-@#SchemaName#_router.get("/", response_model=list[#SchemaNameTag#])
-async def get_all_#SchemaName#(skip: int = 0, limit: int = 100):
-    """Get all #SchemaName#s"""
-    return #SchemaName#_collection.read_all({}, skip, limit)
+@#SchemaNameLower#_router.get("/", response_model=list[#SchemaNameTag#])
+async def get_all_#SchemaNameLower#(skip: int = 0, limit: int = 100):
+    """Get all #SchemaNameLower#s"""
+    return #SchemaNameLower#_collection.read_all({}, skip, limit)
 
 
-@#SchemaName#_router.get("/{#SchemaName#_id}", response_model=#SchemaNameTag#)
-async def get_#SchemaName#(#SchemaName#_id: str):
-    """Get #SchemaName# by id"""
-    return #SchemaName#_collection.read({"_id": #SchemaName#_id})
+@#SchemaNameLower#_router.get("/{#SchemaNameLower#_id}", response_model=#SchemaNameTag#)
+async def get_#SchemaNameLower#(#SchemaNameLower#_id: str):
+    """Get #SchemaNameLower# by id"""
+    return #SchemaNameLower#_collection.read({"_id": #SchemaNameLower#_id})
 
 
-@#SchemaName#_router.post("/")
-async def create_#SchemaName#(#SchemaName#: #SchemaNameTag#Create = Depends(#SchemaNameTag#Create)):
-    """Create #SchemaName#"""
-    return #SchemaName#_collection.create(#SchemaName#.dict())
+@#SchemaNameLower#_router.post("/")
+async def create_#SchemaNameLower#(#SchemaNameLower#: #SchemaNameTag#Create = Depends(#SchemaNameTag#Create)):
+    """Create #SchemaNameLower#"""
+    return #SchemaNameLower#_collection.create(#SchemaNameLower#.dict())
 
 
-@#SchemaName#_router.put("/{#SchemaName#_id}")
-async def update_#SchemaName#(#SchemaName#_id: str, #SchemaName#: #SchemaNameTag#Create = Depends(#SchemaNameTag#Create)):
-    """Update #SchemaName#"""
-    return #SchemaName#_collection.update({"_id": #SchemaName#_id}, #SchemaName#.dict())
+@#SchemaNameLower#_router.put("/{#SchemaNameLower#_id}")
+async def update_#SchemaNameLower#(#SchemaNameLower#_id: str, #SchemaNameLower#: #SchemaNameTag#Create = Depends(#SchemaNameTag#Create)):
+    """Update #SchemaNameLower#"""
+    return #SchemaNameLower#_collection.update({"_id": #SchemaNameLower#_id}, #SchemaNameLower#.dict())
 
 
-@#SchemaName#_router.delete("/{#SchemaName#_id}")
-async def delete_#SchemaName#(#SchemaName#_id: str):
-    """Delete #SchemaName#"""
-    return #SchemaName#_collection.delete({"_id": #SchemaName#_id})
+@#SchemaNameLower#_router.delete("/{#SchemaNameLower#_id}")
+async def delete_#SchemaNameLower#(#SchemaNameLower#_id: str):
+    """Delete #SchemaNameLower#"""
+    return #SchemaNameLower#_collection.delete({"_id": #SchemaNameLower#_id})
