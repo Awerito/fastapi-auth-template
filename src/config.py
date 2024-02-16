@@ -21,6 +21,7 @@ FASTAPI_CONFIG = {
     "title": API_TITLE,
     "description": API_DESCRIPTION,
     "openapi_url": API_OPENAPI_URL,
+    "version": API_VERSION,
     "swagger_ui_parameters": {"defaultModelsExpandDepth": -1},
 }
 
