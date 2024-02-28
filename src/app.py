@@ -1,6 +1,5 @@
 import logging
 
-from pprint import pprint
 from fastapi import FastAPI
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,10 +30,10 @@ async def app_startup():
         server_info = db.client.server_info()
         logging.info(f"Connected to MongoDB server: {server_info['version']}")
     except OperationFailure as e:
-        print(f"Error: {e}")
+        logging.error(f"Error: {e}")
         exit(1)
     except ServerSelectionTimeoutError as e:
-        print(f"Error: {e}")
+        logging.error(f"Error: {e}")
         exit(1)
 
     # Create the admin user if it does not exist
