@@ -1,12 +1,8 @@
 from typing import Annotated
 from datetime import datetime, timedelta
 
-from fastapi import Depends, FastAPI, HTTPException, Security, status
-from fastapi.security import (
-    SecurityScopes,
-    OAuth2PasswordBearer,
-    OAuth2PasswordRequestForm,
-)
+from fastapi import Depends, HTTPException, status
+from fastapi.security import SecurityScopes, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
@@ -158,5 +154,5 @@ def create_admin_user(db):
         scopes=list(SCOPES.keys()),
         disabled=False,
     )
-    db.users.insert_one(admin_user.dict())
-    return User(**admin_user.dict())
+    db.users.insert_one(admin_user.model_dump())
+    return User(**admin_user.model_dump())

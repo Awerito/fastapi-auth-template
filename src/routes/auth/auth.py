@@ -1,6 +1,6 @@
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import APIRouter, HTTPException, Depends, Security, Form, status
+from fastapi import APIRouter, HTTPException, Depends, Security, status
 
 from src.database import db
 from src.config import ACCESS_TOKEN_DURATION_MINUTES
@@ -10,7 +10,6 @@ from src.auth import (
     UserInDB,
     UserCreate,
     get_user,
-    verify_password,
     get_password_hash,
     authenticate_user,
     create_access_token,
@@ -89,7 +88,9 @@ async def create_user(
         )
 
     hashed_password = get_password_hash(user.password)
-    db.users.insert_one(UserInDB(**user.dict(), hashed_password=hashed_password).dict())
+    db.users.insert_one(
+        UserInDB(**user.model_dump(), hashed_password=hashed_password).model_dump()
+    )
 
     raise HTTPException(status_code=status.HTTP_201_CREATED, detail="User created")
 
@@ -142,7 +143,11 @@ async def update_user(
         hasshed_password = get_password_hash(user.password)
         db.users.update_one(
             {"username": name},
-            {"$set": UserInDB(**user.dict(), hashed_password=hasshed_password).dict()},
+            {
+                "$set": UserInDB(
+                    **user.model_dump(), hashed_password=hasshed_password
+                ).model_dump()
+            },
         )
         raise HTTPException(status_code=status.HTTP_200_OK, detail="User updated")
 

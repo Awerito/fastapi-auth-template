@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import FastAPI
-from datetime import datetime
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
@@ -12,16 +12,8 @@ from src.routes.auth.auth import authentication_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 
-app = FastAPI(**FASTAPI_CONFIG)
-app.add_middleware(CORSMiddleware, **MIDDLEWARE_CONFIG)
-
-
-@app.on_event("startup")
-async def app_startup():
-    """
-    This function is called when the application starts.
-    """
-
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
 
@@ -41,11 +33,19 @@ async def app_startup():
     if user:
         logging.warning("Admin user created!")
 
+    yield
 
-@app.on_event("shutdown")
-async def app_shutdown():
-    db.client.close()
+    try:
+        logging.info("Closing the database connection")
+        db.client.close()
+    except Exception as e:
+        logging.error(f"Error: {e}")
 
+    logging.info("Database connection closed!")
+
+
+app = FastAPI(**FASTAPI_CONFIG, lifespan=lifespan)
+app.add_middleware(CORSMiddleware, **MIDDLEWARE_CONFIG)
 
 # Users Endpoints
 app.include_router(authentication_routes)

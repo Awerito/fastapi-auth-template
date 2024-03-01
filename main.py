@@ -1,5 +1,4 @@
 import uvicorn
-from datetime import datetime
 
 from src.config import DEVELOPMENT
 
