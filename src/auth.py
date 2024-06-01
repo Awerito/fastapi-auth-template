@@ -20,8 +20,11 @@ SCOPES = {
     "user.create": "Create a new user.",
     "user.update": "Update a user.",
     "user.delete": "Delete a user.",
-    # Sample
-    "sample.read": "Read sample.",
+    # Files
+    "file.read": "Read a file.",
+    "file.write": "Write a file.",
+    "file.delete": "Delete a file.",
+    "file.all": "All files.",
 }
 
 

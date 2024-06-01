@@ -9,6 +9,7 @@ from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 from src.database import db
 from src.auth import create_admin_user
 from src.routes.auth.auth import authentication_routes
+from src.routes.files.files import router as files_router
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 
@@ -47,5 +48,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(**FASTAPI_CONFIG, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, **MIDDLEWARE_CONFIG)
 
-# Users Endpoints
+# Endpoints
 app.include_router(authentication_routes)
+app.include_router(files_router)
