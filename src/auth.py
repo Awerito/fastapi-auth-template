@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 
-from src.database import get_db_instance
+from src.database import get_mongo_instance
 from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
@@ -110,7 +110,7 @@ async def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
-    dependency = get_db_instance()
+    dependency = get_mongo_instance()
     db = next(dependency)
     try:
         if security_scopes.scopes:
@@ -154,7 +154,7 @@ async def current_active_user(current_user: User = Depends(get_current_user)):
 
 
 def create_admin_user():
-    dependency = get_db_instance()
+    dependency = get_mongo_instance()
     db = next(dependency)
     try:
         user = db.users.find_one()
