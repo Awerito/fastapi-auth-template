@@ -28,7 +28,7 @@ async def get_attachments(
 async def get_attachment(
     file_id: str,
     user: dict = Security(current_active_user, scopes=["file.read"]),
-    fs=Depends(get_fs_instance),
+    fs: gridfs.GridFS = Depends(get_fs_instance),
 ):
     attachment = fs.find_one({"_id": ObjectId(file_id)})
     if not attachment:
