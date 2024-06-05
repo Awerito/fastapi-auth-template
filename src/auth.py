@@ -1,13 +1,14 @@
 from typing import Annotated
 from datetime import datetime, timedelta
 
+from pymongo.database import Database
 from fastapi import Depends, HTTPException, status
 from fastapi.security import SecurityScopes, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 
-from src.database import db
+from src.database import get_db_instance
 from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
@@ -77,7 +78,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, username: str):
+def get_user(db: Database, username: str):
     user = db.users.find_one({"username": username})
     if not user:
         return None
@@ -85,7 +86,7 @@ def get_user(db, username: str):
     return UserInDB(**user)
 
 
-def authenticate_user(db, username: str, password: str):
+def authenticate_user(db: Database, username: str, password: str):
     user = get_user(db, username)
     if not user:
         return False
@@ -106,38 +107,44 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 
 async def get_current_user(
-    security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
+    security_scopes: SecurityScopes,
+    token: Annotated[str, Depends(oauth2_scheme)],
 ):
-    if security_scopes.scopes:
-        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
-    else:
-        authenticate_value = "Bearer"
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": authenticate_value},
-    )
+    dependency = get_db_instance()
+    db = next(dependency)
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        if security_scopes.scopes:
+            authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+        else:
+            authenticate_value = "Bearer"
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            if username is None:
+                raise credentials_exception
+            token_scopes = payload.get("scopes", [])
+            token_data = TokenData(scopes=token_scopes, username=username)
+        except (JWTError, ValidationError):
             raise credentials_exception
-        token_scopes = payload.get("scopes", [])
-        token_data = TokenData(scopes=token_scopes, username=username)
-    except (JWTError, ValidationError):
-        raise credentials_exception
-    user = get_user(db, username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    for scope in security_scopes.scopes:
-        if scope not in token_data.scopes or scope not in user.scopes:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not enough permissions",
-                headers={"WWW-Authenticate": authenticate_value},
-            )
+        user = get_user(db, username=token_data.username)
+        if user is None:
+            raise credentials_exception
+        for scope in security_scopes.scopes:
+            if scope not in token_data.scopes or scope not in user.scopes:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not enough permissions",
+                    headers={"WWW-Authenticate": authenticate_value},
+                )
 
-    return user
+        return user
+    finally:
+        next(dependency, None)
 
 
 async def current_active_user(current_user: User = Depends(get_current_user)):
@@ -146,16 +153,21 @@ async def current_active_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-def create_admin_user(db):
-    user = db.users.find_one()
-    if user:
-        return None
+def create_admin_user():
+    dependency = get_db_instance()
+    db = next(dependency)
+    try:
+        user = db.users.find_one()
+        if user:
+            return None
 
-    admin_user = UserInDB(
-        username="admin",
-        hashed_password=get_password_hash("admin"),
-        scopes=list(SCOPES.keys()),
-        disabled=False,
-    )
-    db.users.insert_one(admin_user.model_dump())
-    return User(**admin_user.model_dump())
+        admin_user = UserInDB(
+            username="admin",
+            hashed_password=get_password_hash("admin"),
+            scopes=list(SCOPES.keys()),
+            disabled=False,
+        )
+        db.users.insert_one(admin_user.model_dump())
+        return User(**admin_user.model_dump())
+    finally:
+        next(dependency, None)

@@ -1,10 +1,12 @@
-from bson import ObjectId
-from pymongo.errors import BulkWriteError
-from fastapi import APIRouter, HTTPException, UploadFile, Security
-from fastapi.responses import StreamingResponse
-from urllib.parse import quote
+import gridfs
 
-from src.database import fs
+from bson import ObjectId
+from urllib.parse import quote
+from pymongo.errors import BulkWriteError
+from fastapi import APIRouter, HTTPException, UploadFile, Security, Depends
+from fastapi.responses import StreamingResponse
+
+from src.database import get_fs_instance
 from src.auth import current_active_user
 
 
@@ -16,6 +18,7 @@ async def get_attachments(
     page: int = 1,
     limit: int = 10,
     user: dict = Security(current_active_user, scopes=["file.all"]),
+    fs: gridfs.GridFS = Depends(get_fs_instance),
 ):
     attachments = fs.find().skip((page - 1) * limit).limit(limit)
     return {str(attachment._id): attachment.filename for attachment in attachments}
@@ -23,7 +26,9 @@ async def get_attachments(
 
 @router.get("/{file_id}")
 async def get_attachment(
-    file_id: str, user: dict = Security(current_active_user, scopes=["file.read"])
+    file_id: str,
+    user: dict = Security(current_active_user, scopes=["file.read"]),
+    fs=Depends(get_fs_instance),
 ):
     attachment = fs.find_one({"_id": ObjectId(file_id)})
     if not attachment:
@@ -45,7 +50,9 @@ async def get_attachment(
 
 @router.post("/")
 async def upload_attachment(
-    file: UploadFile, user: dict = Security(current_active_user, scopes=["file.write"])
+    file: UploadFile,
+    user: dict = Security(current_active_user, scopes=["file.write"]),
+    fs: gridfs.GridFS = Depends(get_fs_instance),
 ):
     try:
         file_id = fs.put(file.file, filename=file.filename)
@@ -57,7 +64,9 @@ async def upload_attachment(
 
 @router.delete("/{file_id}")
 async def delete_attachment(
-    file_id: str, user: dict = Security(current_active_user, scopes=["file.delete"])
+    file_id: str,
+    user: dict = Security(current_active_user, scopes=["file.delete"]),
+    fs: gridfs.GridFS = Depends(get_fs_instance),
 ):
     attachment = fs.find_one({"_id": ObjectId(file_id)})
     if not attachment:

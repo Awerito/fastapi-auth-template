@@ -3,10 +3,8 @@ import logging
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 
 
-from src.database import db
 from src.auth import create_admin_user
 from src.routes.auth.auth import authentication_routes
 from src.routes.files.files import router as files_router
@@ -15,34 +13,19 @@ from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Start of the application
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
 
-    # Connect to the database
-    try:
-        server_info = db.client.server_info()
-        logging.info(f"Connected to MongoDB server: {server_info['version']}")
-    except OperationFailure as e:
-        logging.error(f"Error: {e}")
-        exit(1)
-    except ServerSelectionTimeoutError as e:
-        logging.error(f"Error: {e}")
-        exit(1)
-
     # Create the admin user if it does not exist
-    user = create_admin_user(db)
+    user = create_admin_user()
     if user:
         logging.warning("Admin user created!")
 
     yield
 
-    try:
-        logging.info("Closing the database connection")
-        db.client.close()
-    except Exception as e:
-        logging.error(f"Error: {e}")
-
-    logging.info("Database connection closed!")
+    # End of the application
+    pass
 
 
 app = FastAPI(**FASTAPI_CONFIG, lifespan=lifespan)

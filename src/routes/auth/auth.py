@@ -1,8 +1,9 @@
 from datetime import timedelta
+from pymongo.database import Database
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, Security, status
 
-from src.database import db
+from src.database import get_db_instance
 from src.config import ACCESS_TOKEN_DURATION_MINUTES
 from src.auth import (
     User,
@@ -23,7 +24,10 @@ authentication_routes = APIRouter()
 @authentication_routes.post(
     "/token", response_model=Token, tags=["Users and Authentication"]
 )
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Database = Depends(get_db_instance),
+):
     """Validate user logins and returns a JWT.
 
     Parameters
@@ -62,6 +66,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 async def create_user(
     user: UserCreate = Depends(UserCreate),
     current_user: User = Security(current_active_user, scopes=["user.create"]),
+    db: Database = Depends(get_db_instance),
 ):
     """Allows to an authenticated user to create an user.
 
@@ -99,7 +104,9 @@ async def create_user(
     "/user/{name}/", response_model=User, tags=["Users and Authentication"]
 )
 async def get_user_by_username(
-    name: str, current_user: User = Security(current_active_user, scopes=["user.me"])
+    name: str,
+    current_user: User = Security(current_active_user, scopes=["user.me"]),
+    db: Database = Depends(get_db_instance),
 ):
     """Returns basic info of the given user.
 
@@ -128,6 +135,7 @@ async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
     current_user: User = Security(current_active_user, scopes=["user.update"]),
+    db: Database = Depends(get_db_instance),
 ):
     """Update the current user's usersname. Cannot be repeated.
 
@@ -158,6 +166,7 @@ async def update_user(
 async def delete_user(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.delete"]),
+    db: Database = Depends(get_db_instance),
 ):
     """Delete the given user if exists.
 
@@ -197,7 +206,8 @@ async def delete_user(
     "/user/", response_model=list[User], tags=["Users and Authentication"]
 )
 async def get_all_users(
-    current_user: User = Security(current_active_user, scopes=["user.all"])
+    current_user: User = Security(current_active_user, scopes=["user.all"]),
+    db: Database = Depends(get_db_instance),
 ):
     """Lists all existing users.
 
