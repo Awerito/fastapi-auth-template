@@ -17,6 +17,14 @@ def get_mongo_instance() -> Generator[Database, None, None]:
         client.close()
 
 
+def get_redis_instance() -> Generator[redis.Redis, None, None]:
+    r = redis.Redis()
+    try:
+        yield r
+    finally:
+        r.close()
+
+
 def get_fs_instance(
     db: Database = Depends(get_mongo_instance),
 ) -> Generator[gridfs.GridFS, None, None]:

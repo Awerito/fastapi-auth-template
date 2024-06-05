@@ -39,6 +39,10 @@ DEVELOPMENT = getenv("DEVELOPMENT", "true").lower() == "true"
 MONGO_URI = getenv("MONGO_URI", "mongodb://localhost:27017")
 DATABASE_NAME = getenv("DATABASE_NAME", "fastapi")
 
+# Redis config
+REDIS_HOST = getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(getenv("REDIS_PORT", "6379"))
+
 # JWT config
 SECRET_KEY = getenv("SECRET_KEY")
 ALGORITHM = getenv("ALGORITHM")
