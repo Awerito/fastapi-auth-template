@@ -36,10 +36,7 @@ MIDDLEWARE_CONFIG = {
 DEVELOPMENT = getenv("DEVELOPMENT", "true").lower() == "true"
 
 # MongoDB config
-MONGO_USER = getenv("MONGO_USER", "admin")
-MONGO_PASS = getenv("MONGO_PASS", "admin")
-MONGO_HOST = getenv("MONGO_HOST", "localhost")
-MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/admin"
+MONGO_URI = getenv("MONGO_URI", "mongodb://localhost:27017")
 DATABASE_NAME = getenv("DATABASE_NAME", "fastapi")
 
 # JWT config
