@@ -1,4 +1,4 @@
-# project_name
+# Fastapi Template
 
 ## Setup
 
