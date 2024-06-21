@@ -65,7 +65,7 @@ async def login(
 @authentication_routes.post("/user/", tags=["Users and Authentication"])
 async def create_user(
     user: UserCreate = Depends(UserCreate),
-    current_user: User = Security(current_active_user, scopes=["user.create"]),
+    _: User = Security(current_active_user, scopes=["user.create"]),
     db: Database = Depends(get_db_instance),
 ):
     """Allows to an authenticated user to create an user.
@@ -206,7 +206,7 @@ async def delete_user(
     "/user/", response_model=list[User], tags=["Users and Authentication"]
 )
 async def get_all_users(
-    current_user: User = Security(current_active_user, scopes=["user.all"]),
+    _: User = Security(current_active_user, scopes=["user.all"]),
     db: Database = Depends(get_db_instance),
 ):
     """Lists all existing users.
