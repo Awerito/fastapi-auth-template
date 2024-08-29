@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 
-from src.database import get_db_instance
+from src.database import MongoDBConnectionManager
 from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
@@ -110,41 +110,37 @@ async def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
-    dependency = get_db_instance()
-    db = next(dependency)
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": authenticate_value},
+    )
     try:
-        if security_scopes.scopes:
-            authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
-        else:
-            authenticate_value = "Bearer"
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": authenticate_value},
-        )
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username: str = payload.get("sub")
-            if username is None:
-                raise credentials_exception
-            token_scopes = payload.get("scopes", [])
-            token_data = TokenData(scopes=token_scopes, username=username)
-        except (JWTError, ValidationError):
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
             raise credentials_exception
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError):
+        raise credentials_exception
+    with MongoDBConnectionManager() as db:
         user = get_user(db, username=token_data.username)
-        if user is None:
-            raise credentials_exception
-        for scope in security_scopes.scopes:
-            if scope not in token_data.scopes or scope not in user.scopes:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not enough permissions",
-                    headers={"WWW-Authenticate": authenticate_value},
-                )
+    if user is None:
+        raise credentials_exception
+    for scope in security_scopes.scopes:
+        if scope not in token_data.scopes or scope not in user.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
 
-        return user
-    finally:
-        next(dependency, None)
+    return user
 
 
 async def current_active_user(current_user: User = Depends(get_current_user)):
@@ -154,9 +150,7 @@ async def current_active_user(current_user: User = Depends(get_current_user)):
 
 
 def create_admin_user():
-    dependency = get_db_instance()
-    db = next(dependency)
-    try:
+    with MongoDBConnectionManager() as db:
         user = db.users.find_one()
         if user:
             return None
@@ -169,5 +163,3 @@ def create_admin_user():
         )
         db.users.insert_one(admin_user.model_dump())
         return User(**admin_user.model_dump())
-    finally:
-        next(dependency, None)

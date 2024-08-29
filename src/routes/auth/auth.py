@@ -3,7 +3,7 @@ from pymongo.database import Database
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, Security, status
 
-from src.database import get_db_instance
+from src.database import MongoDBConnectionManager
 from src.config import ACCESS_TOKEN_DURATION_MINUTES
 from src.auth import (
     User,
@@ -26,7 +26,6 @@ authentication_routes = APIRouter()
 )
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Database = Depends(get_db_instance),
 ):
     """Validate user logins and returns a JWT.
 
@@ -47,7 +46,8 @@ async def login(
 
     """
 
-    user = authenticate_user(db, form_data.username, form_data.password)
+    with MongoDBConnectionManager() as db:
+        user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -66,7 +66,6 @@ async def login(
 async def create_user(
     user: UserCreate = Depends(UserCreate),
     _: User = Security(current_active_user, scopes=["user.create"]),
-    db: Database = Depends(get_db_instance),
 ):
     """Allows to an authenticated user to create an user.
 
@@ -86,16 +85,17 @@ async def create_user(
 
     """
 
-    user_exists = get_user(db, user.username)
-    if user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User not created"
-        )
+    with MongoDBConnectionManager() as db:
+        user_exists = get_user(db, user.username)
+        if user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="User not created"
+            )
 
-    hashed_password = get_password_hash(user.password)
-    db.users.insert_one(
-        UserInDB(**user.model_dump(), hashed_password=hashed_password).model_dump()
-    )
+        hashed_password = get_password_hash(user.password)
+        db.users.insert_one(
+            UserInDB(**user.model_dump(), hashed_password=hashed_password).model_dump()
+        )
 
     raise HTTPException(status_code=status.HTTP_201_CREATED, detail="User created")
 
@@ -106,7 +106,6 @@ async def create_user(
 async def get_user_by_username(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.me"]),
-    db: Database = Depends(get_db_instance),
 ):
     """Returns basic info of the given user.
 
@@ -119,7 +118,8 @@ async def get_user_by_username(
     if "admin" in current_user.scopes or (
         "user.me" in current_user.scopes and current_user.username == name
     ):
-        user = get_user(db, name)
+        with MongoDBConnectionManager() as db:
+            user = get_user(db, name)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
@@ -135,7 +135,6 @@ async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
     current_user: User = Security(current_active_user, scopes=["user.update"]),
-    db: Database = Depends(get_db_instance),
 ):
     """Update the current user's usersname. Cannot be repeated.
 
@@ -149,14 +148,15 @@ async def update_user(
 
     if "admin" in current_user.scopes or current_user.username == name:
         hasshed_password = get_password_hash(user.password)
-        db.users.update_one(
-            {"username": name},
-            {
-                "$set": UserInDB(
-                    **user.model_dump(), hashed_password=hasshed_password
-                ).model_dump()
-            },
-        )
+        with MongoDBConnectionManager() as db:
+            db.users.update_one(
+                {"username": name},
+                {
+                    "$set": UserInDB(
+                        **user.model_dump(), hashed_password=hasshed_password
+                    ).model_dump()
+                },
+            )
         raise HTTPException(status_code=status.HTTP_200_OK, detail="User updated")
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
@@ -166,7 +166,6 @@ async def update_user(
 async def delete_user(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.delete"]),
-    db: Database = Depends(get_db_instance),
 ):
     """Delete the given user if exists.
 
@@ -178,26 +177,27 @@ async def delete_user(
 
     """
 
-    if "admin" in current_user.scopes:
-        result = db.users.delete_one({"username": name})
+    with MongoDBConnectionManager() as db:
+        if "admin" in current_user.scopes:
+            result = db.users.delete_one({"username": name})
 
-        if result.deleted_count == 0:
+            if result.deleted_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
+                )
+
+            raise HTTPException(status_code=status.HTTP_200_OK, detail="User deleted")
+
+        if "user.me" in current_user.scopes and current_user.username != name:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not allowed",
             )
 
-        raise HTTPException(status_code=status.HTTP_200_OK, detail="User deleted")
-
-    if "user.me" in current_user.scopes and current_user.username != name:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not allowed",
-        )
-
-    if "user.me" in current_user.scopes and current_user.username == name:
-        user = get_user(db, name)
-        db.users.update_one({"username": name}, {"$set": {"disabled": True}})
-        raise HTTPException(status_code=status.HTTP_200_OK, detail="User deleted")
+        if "user.me" in current_user.scopes and current_user.username == name:
+            user = get_user(db, name)
+            db.users.update_one({"username": name}, {"$set": {"disabled": True}})
+            raise HTTPException(status_code=status.HTTP_200_OK, detail="User deleted")
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
@@ -205,10 +205,7 @@ async def delete_user(
 @authentication_routes.get(
     "/user/", response_model=list[User], tags=["Users and Authentication"]
 )
-async def get_all_users(
-    _: User = Security(current_active_user, scopes=["user.all"]),
-    db: Database = Depends(get_db_instance),
-):
+async def get_all_users(_: User = Security(current_active_user, scopes=["user.all"])):
     """Lists all existing users.
 
     Returns
@@ -219,7 +216,8 @@ async def get_all_users(
 
     """
 
-    users = list(db.users.find({}, {"_id": 0, "hashed_password": 0}))
+    with MongoDBConnectionManager() as db:
+        users = list(db.users.find({}, {"_id": 0, "hashed_password": 0}))
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
