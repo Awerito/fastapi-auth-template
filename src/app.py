@@ -7,12 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.auth import create_admin_user
 from src.routes.auth.auth import authentication_routes
-from src.routes.files.files import router as files_router
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     # Start of the application
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
@@ -33,4 +32,3 @@ app.add_middleware(CORSMiddleware, **MIDDLEWARE_CONFIG)
 
 # Endpoints
 app.include_router(authentication_routes)
-app.include_router(files_router)

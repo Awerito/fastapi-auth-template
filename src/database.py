@@ -1,4 +1,3 @@
-import gridfs
 from pymongo import MongoClient
 from pymongo.database import Database
 
@@ -18,19 +17,6 @@ class MongoDBConnectionManager:
         return self.db
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        _ = exc_type, exc_val, exc_tb
         if self.client:
             self.client.close()
-
-
-class GridFSConnectionManager:
-    def __init__(self, db: Database):
-        with MongoDBConnectionManager() as db:
-            self.db = db
-        self.fs = None
-
-    def __enter__(self) -> gridfs.GridFS:
-        self.fs = gridfs.GridFS(self.db)
-        return self.fs
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
