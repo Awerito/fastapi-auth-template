@@ -1,5 +1,4 @@
 from datetime import timedelta
-from pymongo.database import Database
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, Security, status
 
@@ -46,8 +45,8 @@ async def login(
 
     """
 
-    with MongoDBConnectionManager() as db:
-        user = authenticate_user(db, form_data.username, form_data.password)
+    async with MongoDBConnectionManager() as db:
+        user = await authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,15 +84,15 @@ async def create_user(
 
     """
 
-    with MongoDBConnectionManager() as db:
-        user_exists = get_user(db, user.username)
+    async with MongoDBConnectionManager() as db:
+        user_exists = await get_user(db, user.username)
         if user_exists:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="User not created"
             )
 
         hashed_password = get_password_hash(user.password)
-        db.users.insert_one(
+        await db.users.insert_one(
             UserInDB(**user.model_dump(), hashed_password=hashed_password).model_dump()
         )
 
@@ -118,8 +117,8 @@ async def get_user_by_username(
     if "admin" in current_user.scopes or (
         "user.me" in current_user.scopes and current_user.username == name
     ):
-        with MongoDBConnectionManager() as db:
-            user = get_user(db, name)
+        async with MongoDBConnectionManager() as db:
+            user = await get_user(db, name)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
@@ -148,8 +147,8 @@ async def update_user(
 
     if "admin" in current_user.scopes or current_user.username == name:
         hasshed_password = get_password_hash(user.password)
-        with MongoDBConnectionManager() as db:
-            db.users.update_one(
+        async with MongoDBConnectionManager() as db:
+            await db.users.update_one(
                 {"username": name},
                 {
                     "$set": UserInDB(
@@ -177,9 +176,9 @@ async def delete_user(
 
     """
 
-    with MongoDBConnectionManager() as db:
+    async with MongoDBConnectionManager() as db:
         if "admin" in current_user.scopes:
-            result = db.users.delete_one({"username": name})
+            result = await db.users.delete_one({"username": name})
 
             if result.deleted_count == 0:
                 raise HTTPException(
@@ -195,8 +194,7 @@ async def delete_user(
             )
 
         if "user.me" in current_user.scopes and current_user.username == name:
-            user = get_user(db, name)
-            db.users.update_one({"username": name}, {"$set": {"disabled": True}})
+            await db.users.update_one({"username": name}, {"$set": {"disabled": True}})
             raise HTTPException(status_code=status.HTTP_200_OK, detail="User deleted")
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
@@ -216,8 +214,8 @@ async def get_all_users(_: User = Security(current_active_user, scopes=["user.al
 
     """
 
-    with MongoDBConnectionManager() as db:
-        users = list(db.users.find({}, {"_id": 0, "hashed_password": 0}))
+    async with MongoDBConnectionManager() as db:
+        users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(None)
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 

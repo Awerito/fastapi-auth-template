@@ -8,6 +8,7 @@ exceptiongroup==1.2.0
 fastapi==0.110.0
 h11==0.14.0
 idna==3.6
+motor==3.5.1
 passlib==1.7.4
 pyasn1==0.5.1
 pydantic==2.6.3

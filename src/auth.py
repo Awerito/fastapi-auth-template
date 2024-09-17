@@ -1,7 +1,7 @@
 from typing import Annotated
 from datetime import datetime, timedelta
 
-from pymongo.database import Database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import Depends, HTTPException, status
 from fastapi.security import SecurityScopes, OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -21,11 +21,6 @@ SCOPES = {
     "user.create": "Create a new user.",
     "user.update": "Update a user.",
     "user.delete": "Delete a user.",
-    # Files
-    "file.read": "Read a file.",
-    "file.write": "Write a file.",
-    "file.delete": "Delete a file.",
-    "file.all": "All files.",
 }
 
 
@@ -78,16 +73,16 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db: Database, username: str):
-    user = db.users.find_one({"username": username})
+async def get_user(db: AsyncIOMotorDatabase, username: str):
+    user = await db.users.find_one({"username": username})
     if not user:
         return None
 
     return UserInDB(**user)
 
 
-def authenticate_user(db: Database, username: str, password: str):
-    user = get_user(db, username)
+async def authenticate_user(db: AsyncIOMotorDatabase, username: str, password: str):
+    user = await get_user(db, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -128,8 +123,8 @@ async def get_current_user(
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
-    with MongoDBConnectionManager() as db:
-        user = get_user(db, username=token_data.username)
+    async with MongoDBConnectionManager() as db:
+        user = await get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
@@ -149,9 +144,9 @@ async def current_active_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-def create_admin_user():
-    with MongoDBConnectionManager() as db:
-        user = db.users.find_one()
+async def create_admin_user():
+    async with MongoDBConnectionManager() as db:
+        user = await db.users.find_one()
         if user:
             return None
 
@@ -161,5 +156,5 @@ def create_admin_user():
             scopes=list(SCOPES.keys()),
             disabled=False,
         )
-        db.users.insert_one(admin_user.model_dump())
+        await db.users.insert_one(admin_user.model_dump())
         return User(**admin_user.model_dump())

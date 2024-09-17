@@ -1,5 +1,5 @@
-from pymongo import MongoClient
-from pymongo.database import Database
+import motor.motor_asyncio
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from src.config import MONGO_URI, DATABASE_NAME
 
@@ -11,12 +11,12 @@ class MongoDBConnectionManager:
         self.client = None
         self.db = None
 
-    def __enter__(self) -> Database:
-        self.client = MongoClient(self.uri)
+    async def __aenter__(self) -> AsyncIOMotorDatabase:
+        self.client = motor.motor_asyncio.AsyncIOMotorClient(self.uri)
         self.db = self.client[self.db_name]
         return self.db
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         _ = exc_type, exc_val, exc_tb
         if self.client:
             self.client.close()

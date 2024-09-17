@@ -17,7 +17,7 @@ async def lifespan(_: FastAPI):
         logging.warning("Running in development mode!")
 
     # Create the admin user if it does not exist
-    user = create_admin_user()
+    user = await create_admin_user()
     if user:
         logging.warning("Admin user created!")
 
