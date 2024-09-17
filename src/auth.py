@@ -1,5 +1,5 @@
 from typing import Annotated
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import Depends, HTTPException, status
@@ -93,9 +93,11 @@ async def authenticate_user(db: AsyncIOMotorDatabase, username: str, password: s
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_DURATION_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_DURATION_MINUTES
+        )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -116,15 +118,16 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        username: str = payload.get("sub", "")
+        if username == "":
             raise credentials_exception
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
     async with MongoDBConnectionManager() as db:
-        user = await get_user(db, username=token_data.username)
+        usernamestring = token_data.username if token_data.username else ""
+        user = await get_user(db, username=usernamestring)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:

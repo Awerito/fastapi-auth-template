@@ -40,6 +40,6 @@ MONGO_URI = getenv("MONGO_URI", "mongodb://localhost:27017")
 DATABASE_NAME = getenv("DATABASE_NAME", "fastapi")
 
 # JWT config
-SECRET_KEY = getenv("SECRET_KEY")
-ALGORITHM = getenv("ALGORITHM")
+SECRET_KEY = getenv("SECRET_KEY", "")
+ALGORITHM = getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_DURATION_MINUTES = int(getenv("ACCESS_TOKEN_DURATION_MINUTES", 60))
