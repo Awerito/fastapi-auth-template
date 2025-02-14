@@ -1,4 +1,4 @@
-FROM python:3.11-alpain AS compiler
+FROM python:3.11-alpine AS compiler
 
 WORKDIR /app/
 
