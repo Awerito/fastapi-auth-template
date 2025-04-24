@@ -17,12 +17,10 @@ from src.auth import (
 )
 
 
-authentication_routes = APIRouter()
+routes = APIRouter()
 
 
-@authentication_routes.post(
-    "/token", response_model=Token, tags=["Users and Authentication"]
-)
+@routes.post("/token", response_model=Token, tags=["Users and Authentication"])
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
@@ -61,7 +59,7 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@authentication_routes.post("/user/", tags=["Users and Authentication"])
+@routes.post("/user/", tags=["Users and Authentication"])
 async def create_user(
     user: UserCreate = Depends(UserCreate),
     _: User = Security(current_active_user, scopes=["user.create"]),
@@ -99,9 +97,7 @@ async def create_user(
     raise HTTPException(status_code=status.HTTP_201_CREATED, detail="User created")
 
 
-@authentication_routes.get(
-    "/user/{name}/", response_model=User, tags=["Users and Authentication"]
-)
+@routes.get("/user/{name}/", response_model=User, tags=["Users and Authentication"])
 async def get_user_by_username(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.me"]),
@@ -129,7 +125,7 @@ async def get_user_by_username(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
-@authentication_routes.put("/user/{name}/", tags=["Users and Authentication"])
+@routes.put("/user/{name}/", tags=["Users and Authentication"])
 async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
@@ -161,7 +157,7 @@ async def update_user(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
-@authentication_routes.delete("/user/{name}/", tags=["Users and Authentication"])
+@routes.delete("/user/{name}/", tags=["Users and Authentication"])
 async def delete_user(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.delete"]),
@@ -200,9 +196,7 @@ async def delete_user(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
 
-@authentication_routes.get(
-    "/user/", response_model=list[User], tags=["Users and Authentication"]
-)
+@routes.get("/user/", response_model=list[User], tags=["Users and Authentication"])
 async def get_all_users(_: User = Security(current_active_user, scopes=["user.all"])):
     """Lists all existing users.
 

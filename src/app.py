@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from src.auth import create_admin_user
-from src.routes.auth.auth import authentication_routes
+from src.routes.auth.endpoints import routes as auth_routes
 from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 
@@ -31,4 +31,4 @@ app = FastAPI(**FASTAPI_CONFIG, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, **MIDDLEWARE_CONFIG)
 
 # Endpoints
-app.include_router(authentication_routes)
+app.include_router(auth_routes)
