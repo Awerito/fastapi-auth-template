@@ -19,4 +19,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . /app/
 EXPOSE 8000
-CMD [ "python", "main.py" ]
+CMD [ "fastapi", "run", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
