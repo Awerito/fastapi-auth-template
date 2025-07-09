@@ -5,13 +5,13 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from src.auth import create_admin_user
-from src.routes.auth.endpoints import routes as auth_routes
-from src.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
+from app.auth import create_admin_user
+from app.routes.auth.endpoints import routes as auth_routes
+from app.config import FASTAPI_CONFIG, MIDDLEWARE_CONFIG, DEVELOPMENT
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> None:
     # Start of the application
     if DEVELOPMENT:
         logging.warning("Running in development mode!")
