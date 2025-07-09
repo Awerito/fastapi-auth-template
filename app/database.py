@@ -1,15 +1,15 @@
 import motor.motor_asyncio
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from src.config import MONGO_URI, DATABASE_NAME
+from app.config import MONGO_URI, DATABASE_NAME
 
 
 class MongoDBConnectionManager:
-    def __init__(self):
-        self.uri = MONGO_URI
-        self.db_name = DATABASE_NAME
-        self.client = None
-        self.db = None
+    def __init__(self) -> None:
+        self.uri: str = MONGO_URI
+        self.db_name: str = DATABASE_NAME
+        self.client: AsyncIOMotorClient | None = None
+        self.db: AsyncIOMotorDatabase | None = None
 
     async def __aenter__(self) -> AsyncIOMotorDatabase:
         self.client = motor.motor_asyncio.AsyncIOMotorClient(self.uri)

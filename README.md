@@ -7,10 +7,10 @@ Configure `sample.env` and rename it to `.env`.
 - Local:
 
 ```sh
-$ virtualenv env
+$ python -m venv env
 $ source env/bin/activate
 $ pip install -r requirements.txt
-$ python main.py
+$ fastapi dev main.py
 ```
 
 - Docker compose:
