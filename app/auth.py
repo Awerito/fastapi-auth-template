@@ -8,8 +8,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 
-from src.database import MongoDBConnectionManager
-from src.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
+from app.database import MongoDBConnectionManager
+from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_DURATION_MINUTES
 
 
 # Scopes
@@ -65,15 +65,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", scopes=SCOPES)
 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-async def get_user(db: AsyncIOMotorDatabase, username: str):
+async def get_user(db: AsyncIOMotorDatabase, username: str) -> UserInDB | None:
     user = await db.users.find_one({"username": username})
     if not user:
         return None
@@ -81,16 +81,18 @@ async def get_user(db: AsyncIOMotorDatabase, username: str):
     return UserInDB(**user)
 
 
-async def authenticate_user(db: AsyncIOMotorDatabase, username: str, password: str):
+async def authenticate_user(
+    db: AsyncIOMotorDatabase, username: str, password: str
+) -> UserInDB | None:
     user = await get_user(db, username)
     if not user:
-        return False
+        return None
     if not verify_password(password, user.hashed_password):
-        return False
+        return None
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -106,7 +108,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
-):
+) -> User:
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -141,13 +143,13 @@ async def get_current_user(
     return user
 
 
-async def current_active_user(current_user: User = Depends(get_current_user)):
+async def current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
-async def create_admin_user():
+async def create_admin_user() -> User | None:
     async with MongoDBConnectionManager() as db:
         user = await db.users.find_one()
         if user:
