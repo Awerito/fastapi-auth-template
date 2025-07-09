@@ -61,7 +61,7 @@ async def login(
 
 @routes.post("/user/", tags=["Users and Authentication"])
 async def create_user(
-    user: UserCreate = Depends(UserCreate),
+    user: UserCreate,
     _: User = Security(current_active_user, scopes=["user.create"]),
 ):
     """Allows to an authenticated user to create an user.
@@ -128,7 +128,7 @@ async def get_user_by_username(
 @routes.put("/user/{name}/", tags=["Users and Authentication"])
 async def update_user(
     name: str,
-    user: UserCreate = Depends(UserCreate),
+    user: UserCreate,
     current_user: User = Security(current_active_user, scopes=["user.update"]),
 ):
     """Update the current user's usersname. Cannot be repeated.
