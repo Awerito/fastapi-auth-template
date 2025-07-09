@@ -142,13 +142,13 @@ async def update_user(
     """
 
     if "admin" in current_user.scopes or current_user.username == name:
-        hasshed_password = get_password_hash(user.password)
+        hashed_password = get_password_hash(user.password)
         async with MongoDBConnectionManager() as db:
             await db.users.update_one(
                 {"username": name},
                 {
                     "$set": UserInDB(
-                        **user.model_dump(), hashed_password=hasshed_password
+                        **user.model_dump(), hashed_password=hashed_password
                     ).model_dump()
                 },
             )
