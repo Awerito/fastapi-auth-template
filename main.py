@@ -1,13 +1,9 @@
-import uvicorn
+"""Entry point for the FastAPI CLI."""
 
-from src.config import DEVELOPMENT
+# The FastAPI CLI expects an ``app`` variable that references the ``FastAPI``
+# application. With this file in place the application can be started with:
+# ``fastapi dev main:app`` or ``fastapi run main:app``.
 
+from app.main import app
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "src.app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=DEVELOPMENT,
-        log_config="logging.json",
-    )
+__all__ = ["app"]

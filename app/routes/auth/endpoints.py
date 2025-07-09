@@ -2,9 +2,9 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, Security, status
 
-from src.database import MongoDBConnectionManager
-from src.config import ACCESS_TOKEN_DURATION_MINUTES
-from src.auth import (
+from app.database import MongoDBConnectionManager
+from app.config import ACCESS_TOKEN_DURATION_MINUTES
+from app.auth import (
     User,
     Token,
     UserInDB,
@@ -23,7 +23,7 @@ routes = APIRouter()
 @routes.post("/token", response_model=Token, tags=["Users and Authentication"])
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-):
+) -> dict[str, str]:
     """Validate user logins and returns a JWT.
 
     Parameters
@@ -63,7 +63,7 @@ async def login(
 async def create_user(
     user: UserCreate = Depends(UserCreate),
     _: User = Security(current_active_user, scopes=["user.create"]),
-):
+) -> None:
     """Allows to an authenticated user to create an user.
 
     Parameters
@@ -101,7 +101,7 @@ async def create_user(
 async def get_user_by_username(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.me"]),
-):
+) -> User:
     """Returns basic info of the given user.
 
     Parameters
@@ -130,7 +130,7 @@ async def update_user(
     name: str,
     user: UserCreate = Depends(UserCreate),
     current_user: User = Security(current_active_user, scopes=["user.update"]),
-):
+) -> None:
     """Update the current user's usersname. Cannot be repeated.
 
     Parameters
@@ -161,7 +161,7 @@ async def update_user(
 async def delete_user(
     name: str,
     current_user: User = Security(current_active_user, scopes=["user.delete"]),
-):
+) -> None:
     """Delete the given user if exists.
 
     Parameters
@@ -197,7 +197,9 @@ async def delete_user(
 
 
 @routes.get("/user/", response_model=list[User], tags=["Users and Authentication"])
-async def get_all_users(_: User = Security(current_active_user, scopes=["user.all"])):
+async def get_all_users(
+    _: User = Security(current_active_user, scopes=["user.all"])
+) -> list[User]:
     """Lists all existing users.
 
     Returns

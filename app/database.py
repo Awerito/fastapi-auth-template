@@ -1,7 +1,7 @@
 import motor.motor_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from src.config import MONGO_URI, DATABASE_NAME
+from app.config import MONGO_URI, DATABASE_NAME
 
 
 class MongoDBConnectionManager:
