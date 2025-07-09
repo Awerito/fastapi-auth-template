@@ -16,7 +16,7 @@ class MongoDBConnectionManager:
         self.db = self.client[self.db_name]
         return self.db
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         _ = exc_type, exc_val, exc_tb
         if self.client:
             self.client.close()
