@@ -21,4 +21,4 @@ docker-compose up -d
 
 ## Caprover
 
-User the Webhook to deploy
+Use the Webhook to deploy.
