@@ -22,3 +22,12 @@ docker-compose up -d
 ## Caprover
 
 Use the Webhook to deploy.
+
+## Roles and Scopes
+
+This template supports OAuth2 scopes and role management. Roles are groups of
+scopes that can be assigned to users. An initial `admin` role is created on the
+first start and the default `admin` user is assigned to it.
+
+New roles can be managed through the `/role/` endpoints and users can have roles
+assigned through the regular user CRUD endpoints.

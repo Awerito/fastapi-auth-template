@@ -51,9 +51,13 @@ async def login(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    for scope in form_data.scopes:
+        if scope not in user.scopes:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not enough permissions")
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_DURATION_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "scopes": form_data.scopes},
+        data={"sub": user.username, "scopes": form_data.scopes or user.scopes},
         expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -88,6 +92,11 @@ async def create_user(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="User not created"
             )
+
+        if user.roles:
+            roles = await db.roles.find({"name": {"$in": user.roles}}).to_list(None)
+            if len(roles) != len(user.roles):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid roles")
 
         hashed_password = get_password_hash(user.password)
         await db.users.insert_one(
@@ -144,6 +153,10 @@ async def update_user(
     if "admin" in current_user.scopes or current_user.username == name:
         hashed_password = get_password_hash(user.password)
         async with MongoDBConnectionManager() as db:
+            if user.roles:
+                roles = await db.roles.find({"name": {"$in": user.roles}}).to_list(None)
+                if len(roles) != len(user.roles):
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid roles")
             await db.users.update_one(
                 {"username": name},
                 {
@@ -210,7 +223,19 @@ async def get_all_users(_: User = Security(current_active_user, scopes=["user.al
 
     async with MongoDBConnectionManager() as db:
         users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(None)
+        role_map = {
+            r["name"]: r["scopes"]
+            for r in await db.roles.find({}, {"_id": 0}).to_list(None)
+        }
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
-    return [User(**user) for user in users]
+    result = []
+    for user in users:
+        scopes = set(user.get("scopes", []))
+        for role_name in user.get("roles", []):
+            scopes.update(role_map.get(role_name, []))
+        user["scopes"] = list(scopes)
+        result.append(User(**user))
+
+    return result

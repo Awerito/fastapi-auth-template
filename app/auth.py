@@ -40,6 +40,7 @@ class User(BaseModel):
     full_name: str | None = None
     disabled: bool = False
     scopes: list[str] = []
+    roles: list[str] = []
 
     class Config:
         json_schema_extra = {
@@ -48,6 +49,7 @@ class User(BaseModel):
                 "full_name": "username fullname",
                 "email": "example@mail.com",
                 "disabled": False,
+                "roles": ["admin"],
             }
         }
 
@@ -77,6 +79,15 @@ async def get_user(db: AsyncIOMotorDatabase, username: str) -> UserInDB | None:
     user = await db.users.find_one({"username": username})
     if not user:
         return None
+
+    roles = user.get("roles", [])
+    if roles:
+        roles_docs = await db.roles.find({"name": {"$in": roles}}, {"_id": 0}).to_list(None)
+        role_scopes: set[str] = set()
+        for role in roles_docs:
+            role_scopes.update(role.get("scopes", []))
+        user_scopes = set(user.get("scopes", [])) | role_scopes
+        user["scopes"] = list(user_scopes)
 
     return UserInDB(**user)
 
@@ -154,11 +165,16 @@ async def create_admin_user() -> User | None:
         user = await db.users.find_one()
         if user:
             return None
+        # create admin role if not exists
+        role = await db.roles.find_one({"name": "admin"})
+        if not role:
+            await db.roles.insert_one({"name": "admin", "scopes": list(SCOPES.keys())})
 
         admin_user = UserInDB(
             username="admin",
             hashed_password=get_password_hash("admin"),
-            scopes=list(SCOPES.keys()),
+            roles=["admin"],
+            scopes=[],
             disabled=False,
         )
         await db.users.insert_one(admin_user.model_dump())
