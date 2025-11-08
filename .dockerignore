@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Env files
+.env
+*.env
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Tests and scripts (optional)
+tests/
+scripts/
+
+# Project root extras
+README.md
