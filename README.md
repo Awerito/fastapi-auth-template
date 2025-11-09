@@ -109,4 +109,4 @@ docker run --env-file .env -p 8000:8000 fastapi-mongo-template
 ---
 
 [localhost]: http://localhost:8000/docs
-[license]: https://github.com/Awerito/twm-ejemplos/blob/master/LICENSE
+[license]: https://github.com/Awerito/fastapi-auth-template/blob/master/LICENSE
