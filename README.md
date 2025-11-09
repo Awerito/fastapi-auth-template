@@ -16,7 +16,7 @@ cp sample.env .env
 fastapi dev --host 127.0.0.1 --port 8000
 ````
 
-Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+Docs: [http://localhost:8000/docs][localhost]
 
 ---
 
@@ -104,4 +104,9 @@ docker run --env-file .env -p 8000:8000 fastapi-mongo-template
 
 ## 📜 License
 
-MIT © Awerito
+[MIT © Awerito][license]
+
+---
+
+[localhost]: http://localhost:8000/docs
+[license]: https://github.com/Awerito/twm-ejemplos/blob/master/LICENSE
